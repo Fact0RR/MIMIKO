@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Файловый загрузчик с WebSocket</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📁 Загрузка файлов</h1>
+        
+        <div class="upload-section">
+            <div class="upload-card">
+                <h3>🖼️ JPG изображение</h3>
+                <input type="file" id="jpgInput" accept=".jpg,.jpeg">
+                <button onclick="uploadFile('jpg')">Загрузить JPG</button>
+                <div class="upload-status" id="jpgStatus"></div>
+            </div>
+
+            <div class="upload-card">
+                <h3>🎵 WAV аудио</h3>
+                <input type="file" id="wavInput" accept=".wav">
+                <button onclick="uploadFile('wav')">Загрузить WAV</button>
+                <div class="upload-status" id="wavStatus"></div>
+            </div>
+
+            <div class="upload-card">
+                <h3>📄 PDF документ</h3>
+                <input type="file" id="pdfInput" accept=".pdf">
+                <button onclick="uploadFile('pdf')">Загрузить PDF</button>
+                <div class="upload-status" id="pdfStatus"></div>
+            </div>
+        </div>
+
+        <div class="generate-section">
+            <button id="generateBtn" class="generate-btn" disabled onclick="generateVideo()">
+                🎬 Сгенерировать видео
+            </button>
+            <div id="generationStatus" class="generation-status"></div>
+        </div>
+
+        <div class="video-section" style="display: none;" id="videoSection">
+            <h3>🎥 Сгенерированное видео</h3>
+            <div class="video-container">
+                <video id="videoPlayer" controls style="width: 100%; max-height: 400px;"></video>
+            </div>
+        </div>
+
+        <div class="logs-section">
+            <h3>📋 Логи WebSocket</h3>
+            <div class="logs" id="logs"></div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

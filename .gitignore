@@ -1,0 +1,9 @@
+.env
+uploads/
+venv/
+*.wav
+*.pdf
+__pycache__/
+.venv/
+hallo2/
+*.jpg

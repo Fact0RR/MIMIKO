@@ -1,0 +1,105 @@
+services:
+  app:
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./.env
+    depends_on:
+      - postgres
+      - minio
+    restart: always
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=app
+      - POSTGRES_USER=app
+      - POSTGRES_PASSWORD=app123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-05-28T17-19-04Z
+    environment:
+      MINIO_ROOT_USER: minio-user
+      MINIO_ROOT_PASSWORD: minio-password
+      MINIO_UPDATE: "off"
+    entrypoint: >
+      /bin/sh -c '
+        isAlive() { curl -sf http://127.0.0.1:9000/minio/health/live; }    # check if Minio is alive
+        minio $$0 "$$@" --quiet & echo $$! > /tmp/minio.pid                # start Minio in the background
+        while ! isAlive; do sleep 0.1; done                                # wait until Minio is alive
+        mc alias set minio http://127.0.0.1:9000 minio-user minio-password # setup Minio client
+        mc mb minio/voices || true                                         # create a test bucket
+        mc mb minio/files || true                                          # create additional bucket
+        mc anonymous set public minio/voices                               # make the test bucket public
+        mc anonymous set public minio/files                                # make the additional bucket public
+        kill -s INT $$(cat /tmp/minio.pid) && rm /tmp/minio.pid            # stop Minio
+        while isAlive; do sleep 0.1; done                                  # wait until Minio is stopped
+        exec minio $$0 "$$@"                                               # start Minio in the foreground
+      '
+    command: server /data --json --console-address ':9090'
+    ports:
+      - "9000:9000/tcp"
+      - "9090:9090/tcp" # open http://127.0.0.1:9090 (9000 is the API port)
+    volumes:
+      - minio-data:/data:rw
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 10s
+      start_period: 10s
+    security_opt: [no-new-privileges:true]
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-qwen
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./scripts:/scripts  # Монтируем папку со скриптами
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      # Переменные для скрипта загрузки моделей
+      - OLLAMA_MODELS=qwen2.5:7b  # Модели для загрузки (через запятую)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    # Скрипт для загрузки моделей после запуска
+    entrypoint: ["/bin/sh", "-c"]
+    command: 
+      - |
+        ollama serve &
+        sleep 5
+        # Запускаем скрипт загрузки моделей в фоне
+        model/scripts/pull_models.sh &
+        wait
+
+
+volumes:
+  postgres_data:
+  minio-data: {}
+  ollama_data:
+    driver: local

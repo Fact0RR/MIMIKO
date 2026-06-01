@@ -1,0 +1,13 @@
+Flask
+flask-socketio
+eventlet
+psutil
+whisper
+torch
+soundfile
+openai-whisper
+qwen_tts
+PyPDF2
+requests
+websockets
+boto3
