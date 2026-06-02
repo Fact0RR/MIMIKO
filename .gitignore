@@ -7,3 +7,4 @@ __pycache__/
 .venv/
 hallo2/
 *.jpg
+venv_model/
